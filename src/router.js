@@ -44,7 +44,6 @@
       view.innerHTML = page.render(cur.params || {});
       this.syncHeader();
       window.scrollTo(0, 0);
-      if (CFM.analytics) CFM.analytics.track('page_view', { page: cur.name });
       if (page.mount) {
         try {
           page.mount(cur.params || {});

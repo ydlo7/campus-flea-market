@@ -216,7 +216,7 @@
       const list = S.chatsOf();
       const activeId = params.id || (window.innerWidth > 900 && list[0] ? list[0].id : null);
       const c = activeId ? S.chat(activeId) : null;
-      if (c) S.markRead(c.id);
+      if (c) S.markRead(c.id).catch(() => {});
       const notices = S.notices().length;
 
       return `
@@ -280,21 +280,33 @@
   CFM.actions['msg.openOrder'] = (el) => CFM.router.go('order', { id: el.dataset.id });
   CFM.actions['msg.openProduct'] = (el) => CFM.router.go('detail', { id: el.dataset.id });
 
-  CFM.actions['chat.send'] = () => {
+  CFM.actions['chat.send'] = async () => {
     const ta = document.getElementById('cin');
     const c = currentChat();
     if (!ta || !c || !ta.value.trim()) return;
-    S.sendText(c.id, ta.value);
-    afterSend();
+    const text = ta.value;
+    try {
+      await S.sendMessage(c.id, { type: 'text', text });
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['chat.pickImage'] = async () => {
     const c = currentChat();
     if (!c) return;
     const r = await CFM.ui.pickImage(900);
     if (!r) return;
-    S.sendImage(c.id, r.data);
-    afterSend();
+    try {
+      const url = await S.upload(r.data);
+      await S.sendMessage(c.id, { type: 'image', image: url });
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['chat.quote'] = async () => {
     const c = currentChat();
     if (!c) return;
@@ -309,16 +321,26 @@
     if (!v) return;
     const price = Number(v.price);
     if (!price || price <= 0) return toast('填一个有效价格');
-    S.sendQuote(c.id, price);
-    afterSend();
+    try {
+      await S.sendMessage(c.id, { type: 'quote', price });
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
-  CFM.actions['chat.qr'] = () => {
+
+  CFM.actions['chat.qr'] = async () => {
     const c = currentChat();
     if (!c) return;
     if (!S.activeOrderOfChat(c.id)) return toast('先让买家出价并生成订单，再发收款码');
-    S.sendQR(c.id);
-    afterSend();
+    try {
+      await S.sendMessage(c.id, { type: 'qr' });
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['chat.delivery'] = async () => {
     const c = currentChat();
     if (!c) return;
@@ -334,37 +356,63 @@
     });
     if (!v) return;
     if (!v.location) return toast('写个具体地点吧');
-    S.sendDelivery(c.id, v);
-    afterSend();
+    try {
+      await S.sendMessage(c.id, { type: 'delivery', delivery: v.delivery, location: v.location, time: v.time });
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
-  CFM.actions['chat.acceptQuote'] = (el) => {
+
+  CFM.actions['chat.acceptQuote'] = async (el) => {
     const c = currentChat();
     if (!c) return;
-    const o = S.respondQuote(c.id, el.dataset.id, true);
-    if (!o) return afterSend();
-    toast('已接受报价，订单生成');
-    afterSend();
-    setTimeout(() => CFM.router.go('order', { id: o.id }), 500);
+    try {
+      const r = await S.respondQuote(c.id, el.dataset.id, true);
+      toast('已接受报价，订单生成');
+      afterSend();
+      if (r && r.orderId) setTimeout(() => CFM.router.go('order', { id: r.orderId }), 400);
+    } catch (e) {
+      toast(e.message);
+      afterSend();
+    }
   };
-  CFM.actions['chat.rejectQuote'] = (el) => {
+
+  CFM.actions['chat.rejectQuote'] = async (el) => {
     const c = currentChat();
     if (!c) return;
-    S.respondQuote(c.id, el.dataset.id, false);
-    toast('已拒绝该报价');
-    afterSend();
+    try {
+      await S.respondQuote(c.id, el.dataset.id, false);
+      toast('已拒绝该报价');
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['chat.uploadProof'] = async (el) => {
-    const r = await CFM.ui.pickImage(900);
+    const r = await CFM.ui.pickImage(1000);
     if (!r) return;
-    S.uploadProof(el.dataset.id, r.data);
-    toast('凭证已上传，等待卖家确认收款');
-    afterSend();
+    try {
+      const url = await S.upload(r.data);
+      await S.uploadProof(el.dataset.id, url);
+      toast('凭证已上传，等待卖家确认收款');
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
-  CFM.actions['chat.confirmPay'] = (el) => {
-    S.confirmPayment(el.dataset.id);
-    toast('已确认收款，等待线下交货');
-    afterSend();
+
+  CFM.actions['chat.confirmPay'] = async (el) => {
+    try {
+      await S.confirmPayment(el.dataset.id);
+      toast('已确认收款，等待线下交货');
+      afterSend();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['chat.order'] = (el) => CFM.router.go('order', { id: el.dataset.id });
   CFM.actions['chat.product'] = (el) => {
     if (el.dataset.id) CFM.router.go('detail', { id: el.dataset.id });

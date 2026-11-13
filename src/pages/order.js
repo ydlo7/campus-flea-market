@@ -172,15 +172,26 @@
   CFM.actions['order.upload'] = async (el) => {
     const r = await CFM.ui.pickImage(1000);
     if (!r) return;
-    S.uploadProof(el.dataset.id, r.data);
-    toast('凭证已上传，等待卖家确认收款');
-    CFM.router.refresh();
+    try {
+      const url = await S.upload(r.data);
+      await S.uploadProof(el.dataset.id, url);
+      toast('凭证已上传，等待卖家确认收款');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
-  CFM.actions['order.confirmPay'] = (el) => {
-    S.confirmPayment(el.dataset.id);
-    toast('已确认收款，请按约定交货');
-    CFM.router.refresh();
+
+  CFM.actions['order.confirmPay'] = async (el) => {
+    try {
+      await S.confirmPayment(el.dataset.id);
+      toast('已确认收款，请按约定交货');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['order.confirmReceipt'] = async (el) => {
     const o = S.order(el.dataset.id);
     const role = S.roleIn(o);
@@ -190,11 +201,15 @@
       okText: '确认',
     });
     if (!ok) return;
-    S.confirmReceipt(el.dataset.id);
-    const o2 = S.order(el.dataset.id);
-    toast(o2.status === 'completed' ? '交易完成，商品已售出' : '已确认，等待对方确认');
-    CFM.router.refresh();
+    try {
+      const r = await S.confirmReceipt(el.dataset.id);
+      toast(r.order.status === 'completed' ? '交易完成，商品已售出' : '已确认，等待对方确认');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['order.cancel'] = async (el) => {
     const o = S.order(el.dataset.id);
     const role = S.roleIn(o);
@@ -205,28 +220,44 @@
       danger: true,
     });
     if (!ok) return;
-    S.cancelOrder(el.dataset.id, role === 'buyer' ? '买家取消订单' : '卖家取消订单');
-    toast('订单已取消，商品已重新上架');
-    CFM.router.refresh();
+    try {
+      await S.cancelOrder(el.dataset.id);
+      toast('订单已取消，商品已重新上架');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['order.chat'] = (el) => {
     const id = el.dataset.id;
     if (!id) return toast('该订单没有关联会话');
     CFM.router.go('messages', { id });
   };
-  CFM.actions['order.sendQR'] = (el) => {
+
+  CFM.actions['order.sendQR'] = async (el) => {
     const o = S.order(el.dataset.id);
     if (!o.chatId) return toast('没有关联会话');
-    S.sendQR(o.chatId);
-    toast('收款码已发送到聊天');
-    CFM.router.go('messages', { id: o.chatId });
+    try {
+      await S.sendMessage(o.chatId, { type: 'qr' });
+      toast('收款码已发送到聊天');
+      CFM.router.go('messages', { id: o.chatId });
+    } catch (e) {
+      toast(e.message);
+    }
   };
-  CFM.actions['order.askQR'] = (el) => {
+
+  CFM.actions['order.askQR'] = async (el) => {
     const o = S.order(el.dataset.id);
     if (!o.chatId) return toast('没有关联会话');
-    S.sendText(o.chatId, '我已经准备好付款啦，麻烦发一下收款码～');
-    toast('已提醒卖家发送收款码');
-    CFM.router.go('messages', { id: o.chatId });
+    try {
+      await S.sendMessage(o.chatId, { type: 'text', text: '我已经准备好付款啦，麻烦发一下收款码～' });
+      toast('已提醒卖家发送收款码');
+      CFM.router.go('messages', { id: o.chatId });
+    } catch (e) {
+      toast(e.message);
+    }
   };
+
   CFM.actions['order.rebuy'] = (el) => CFM.router.go('detail', { id: el.dataset.id });
 })();

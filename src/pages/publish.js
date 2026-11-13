@@ -194,7 +194,17 @@
     st.images.splice(Number(el.dataset.i), 1);
     CFM.router.refresh();
   };
-  CFM.actions['pub.submit'] = () => {
+  /** 本地预览是 dataURL，提交前统一换成服务器 URL */
+  async function uploadImages(images) {
+    const out = [];
+    for (const src of images) {
+      if (String(src).indexOf('data:') === 0) out.push(await CFM.store.upload(src));
+      else out.push(src);
+    }
+    return out;
+  }
+
+  CFM.actions['pub.submit'] = async () => {
     sync();
     if (!st.title.trim() || st.title.trim().length < 4) return CFM.ui.toast('标题至少 4 个字');
     const price = Number(st.price);
@@ -202,33 +212,48 @@
     if (!st.delivery.length) return CFM.ui.toast('至少选择一种交货方式');
     if (!st.images.length) return CFM.ui.toast('至少上传一张图片');
 
-    const payload = {
-      title: st.title.trim(),
-      price,
-      category: st.category,
-      condition: st.condition,
-      desc: st.desc.trim(),
-      delivery: st.delivery.slice(),
-      images: st.images.slice(),
-      ratio: st.ratio,
-    };
-
-    if (editingId) {
-      const id = editingId;
-      S.updateProduct(id, payload);
-      editingId = null;
-      st = null;
-      CFM.ui.toast('已保存');
-      CFM.router.back();
-      const cur = CFM.router.current();
-      if (cur && cur.name === 'detail' && cur.params.id === id) CFM.router.refresh();
-      return;
+    const btn = document.querySelector('[data-act="pub.submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '处理中…';
     }
-    const p = S.createProduct(payload);
-    st = null;
-    editingId = null;
-    if (!p) return CFM.ui.toast('发布失败，请重试');
-    CFM.ui.toast('发布成功');
-    CFM.router.replace('detail', { id: p.id });
+
+    try {
+      const images = await uploadImages(st.images);
+      const payload = {
+        title: st.title.trim(),
+        price,
+        category: st.category,
+        condition: st.condition,
+        desc: st.desc.trim(),
+        delivery: st.delivery.slice(),
+        images,
+        ratio: st.ratio,
+      };
+
+      if (editingId) {
+        const id = editingId;
+        await S.updateProduct(id, payload);
+        editingId = null;
+        st = null;
+        CFM.ui.toast('已保存');
+        CFM.router.back();
+        const cur = CFM.router.current();
+        if (cur && cur.name === 'detail' && cur.params.id === id) CFM.router.refresh();
+        return;
+      }
+
+      const r = await S.createProduct(payload);
+      st = null;
+      editingId = null;
+      CFM.ui.toast('发布成功');
+      CFM.router.replace('detail', { id: r.product.id });
+    } catch (e) {
+      CFM.ui.toast(e.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = editingId ? '保存修改' : '发布';
+      }
+    }
   };
 })();

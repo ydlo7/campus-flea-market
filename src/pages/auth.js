@@ -55,33 +55,39 @@
     CFM.router.refresh();
   };
 
-  CFM.actions['auth.login'] = () => {
+  CFM.actions['auth.login'] = async () => {
     const phone = (document.getElementById('fPhone') || {}).value || '';
     const pwd = (document.getElementById('fPwd') || {}).value || '';
     if (!/^\d{6,}$/.test(phone)) return CFM.ui.toast('请输入正确的手机号');
     if (!pwd) return CFM.ui.toast('请输入密码');
-    const r = CFM.store.login(phone, pwd);
-    if (!r.ok) return CFM.ui.toast(r.msg);
-    CFM.ui.toast('欢迎回来，' + r.user.nick);
-    CFM.router.stack = [{ name: 'home', params: {} }];
-    CFM.router.render();
+    try {
+      const r = await CFM.store.login(phone, pwd);
+      CFM.ui.toast('欢迎回来，' + (r.snapshot.me ? r.snapshot.me.nick : '同学'));
+      CFM.router.stack = [{ name: 'home', params: {} }];
+      CFM.router.render();
+    } catch (e) {
+      CFM.ui.toast(e.message);
+    }
   };
 
-  CFM.actions['auth.register'] = () => {
+  CFM.actions['auth.register'] = async () => {
     const g = (id) => ((document.getElementById(id) || {}).value || '').trim();
     const nick = g('rNick'), phone = g('rPhone'), pwd = g('rPwd');
     if (!nick) return CFM.ui.toast('给自己起个昵称吧');
     if (!/^\d{11}$/.test(phone)) return CFM.ui.toast('手机号需要 11 位');
     if (pwd.length < 6) return CFM.ui.toast('密码至少 6 位');
-    const r = CFM.store.register({
-      nick, phone, pwd,
-      school: g('rSchool') || '湖南大学',
-      campus: g('rCampus') || '南校区',
-      studentNo: g('rNo'),
-    });
-    if (!r.ok) return CFM.ui.toast(r.msg);
-    CFM.ui.toast('注册成功，开始逛逛吧');
-    CFM.router.stack = [{ name: 'home', params: {} }];
-    CFM.router.render();
+    try {
+      await CFM.store.register({
+        nick, phone, pwd,
+        school: g('rSchool') || '湖南大学',
+        campus: g('rCampus') || '南校区',
+        studentNo: g('rNo'),
+      });
+      CFM.ui.toast('注册成功，开始逛逛吧');
+      CFM.router.stack = [{ name: 'home', params: {} }];
+      CFM.router.render();
+    } catch (e) {
+      CFM.ui.toast(e.message);
+    }
   };
 })();

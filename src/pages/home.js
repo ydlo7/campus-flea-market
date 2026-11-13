@@ -81,9 +81,6 @@
       const arr = list();
       if (g) g.innerHTML = gridHTML();
       if (c) c.textContent = arr.length + ' 件在售';
-      if (v && CFM.analytics) {
-        CFM.analytics.track('search', { keyword_len: v.length, category: state.cat, result_count: arr.length });
-      }
     },
   };
 
@@ -96,16 +93,21 @@
     CFM.router.refresh();
   };
   CFM.actions['home.open'] = (el) => {
-    S.bumpView(el.dataset.id);
+    S.bumpView(el.dataset.id).catch(() => {});
     CFM.router.go('detail', { id: el.dataset.id });
   };
 
-  CFM.actions['fav.toggle'] = (el, e) => {
+  CFM.actions['fav.toggle'] = async (el, e) => {
     e.stopPropagation();
-    const on = S.toggleFav(el.dataset.id);
-    CFM.ui.toast(on ? '已收藏，降价会提醒你' : '已取消收藏');
-    el.classList.toggle('on', on);
-    el.innerHTML = on ? iconFill('heart', 14) : icon('heart', 14);
-    if (CFM.router.current().name !== 'home') CFM.router.refresh();
+    try {
+      const r = await S.toggleFav(el.dataset.id);
+      const on = !!(r && r.on);
+      CFM.ui.toast(on ? '已收藏，降价会提醒你' : '已取消收藏');
+      el.classList.toggle('on', on);
+      el.innerHTML = on ? iconFill('heart', 14) : icon('heart', 14);
+      if (CFM.router.current().name !== 'home') CFM.router.refresh();
+    } catch (err) {
+      CFM.ui.toast(err.message);
+    }
   };
 })();

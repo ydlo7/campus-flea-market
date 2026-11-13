@@ -104,7 +104,8 @@
                      ? `<button class="btn primary" disabled>已售出</button>`
                      : active && active.status !== 'pending_pay'
                      ? `<button class="btn primary" data-act="detail.toorder" data-id="${active.id}">查看订单</button>`
-                     : `<button class="btn primary" data-act="detail.chat" data-id="${p.id}">聊一聊</button>`}`}
+                     : `<button class="btn line" data-act="detail.chat" data-id="${p.id}">聊一聊</button>
+                        <button class="btn primary" data-act="detail.buy" data-id="${p.id}">立即购买</button>`}`}
             </div>
           </div>
         </div>
@@ -118,26 +119,56 @@
     document.querySelectorAll('#gthumbs button').forEach((b) => b.classList.remove('on'));
     el.classList.add('on');
   };
-  CFM.actions['detail.chat'] = (el) => {
+  CFM.actions['detail.chat'] = async (el) => {
     const p = S.product(el.dataset.id);
     if (!p) return;
     if (p.status === 'sold') return CFM.ui.toast('商品已售出');
     if (p.sellerId === (S.me() || {}).id) return CFM.ui.toast('这是你自己发布的商品');
-    const c = S.ensureChat(p.id);
-    if (!c) return CFM.ui.toast('无法发起会话');
-    CFM.router.go('messages', { id: c.id });
+    try {
+      const r = await S.ensureChat(p.id);
+      CFM.router.go('messages', { id: r.chat.id });
+    } catch (e) {
+      CFM.ui.toast(e.message);
+    }
+  };
+
+  /** 立即购买：按标价直接下单 */
+  CFM.actions['detail.buy'] = async (el) => {
+    const p = S.product(el.dataset.id);
+    if (!p) return;
+    const ok = await CFM.ui.confirmSheet({
+      title: '立即购买',
+      text: `按标价 ¥${p.price} 下单，商品会为你保留 15 分钟，请在订单页完成转账并上传凭证。`,
+      okText: '确认下单',
+    });
+    if (!ok) return;
+    try {
+      const r = await S.buyNow(p.id);
+      CFM.ui.toast('下单成功，请在 15 分钟内完成付款');
+      CFM.router.go('order', { id: r.orderId });
+    } catch (e) {
+      CFM.ui.toast(e.message);
+    }
   };
   CFM.actions['detail.seller'] = (el) => CFM.router.go('profile', { id: el.dataset.id });
   CFM.actions['detail.edit'] = (el) => CFM.router.go('publish', { id: el.dataset.id });
-  CFM.actions['detail.off'] = (el) => {
-    S.setProductStatus(el.dataset.id, 'off');
-    CFM.ui.toast('已下架');
-    CFM.router.refresh();
+  CFM.actions['detail.off'] = async (el) => {
+    try {
+      await S.setProductStatus(el.dataset.id, 'off');
+      CFM.ui.toast('已下架');
+      CFM.router.refresh();
+    } catch (e) {
+      CFM.ui.toast(e.message);
+    }
   };
-  CFM.actions['detail.on'] = (el) => {
-    S.setProductStatus(el.dataset.id, 'on_sale');
-    CFM.ui.toast('已重新上架');
-    CFM.router.refresh();
+  CFM.actions['detail.on'] = async (el) => {
+    try {
+      await S.setProductStatus(el.dataset.id, 'on_sale');
+      CFM.ui.toast('已重新上架');
+      CFM.router.refresh();
+    } catch (e) {
+      CFM.ui.toast(e.message);
+    }
   };
   CFM.actions['detail.toorder'] = (el) => CFM.router.go('order', { id: el.dataset.id });
 })();

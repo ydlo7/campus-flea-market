@@ -157,24 +157,34 @@
   CFM.actions['my.open'] = (el) => CFM.router.go('detail', { id: el.dataset.id });
   CFM.actions['my.orderOpen'] = (el) => CFM.router.go('order', { id: el.dataset.id });
   CFM.actions['pub.edit'] = (el) => CFM.router.go('publish', { id: el.dataset.id });
-  CFM.actions['my.off'] = (el) => {
-    S.setProductStatus(el.dataset.id, 'off');
-    toast('已下架');
-    CFM.router.refresh();
+  CFM.actions['my.off'] = async (el) => {
+    try {
+      await S.setProductStatus(el.dataset.id, 'off');
+      toast('已下架');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
-  CFM.actions['my.on'] = (el) => {
-    S.setProductStatus(el.dataset.id, 'on_sale');
-    toast('已重新上架');
-    CFM.router.refresh();
+  CFM.actions['my.on'] = async (el) => {
+    try {
+      await S.setProductStatus(el.dataset.id, 'on_sale');
+      toast('已重新上架');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
   CFM.actions['my.del'] = async (el) => {
     const ok = await confirmSheet({ title: '删除商品', text: '删除后不可恢复，确定吗？', okText: '删除', danger: true });
     if (!ok) return;
-    const i = S.db.products.findIndex((p) => p.id === el.dataset.id);
-    if (i >= 0) S.db.products.splice(i, 1);
-    S.save();
-    toast('已删除');
-    CFM.router.refresh();
+    try {
+      await S.deleteProduct(el.dataset.id);
+      toast('已删除');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
 
   CFM.actions['mine.edit'] = async () => {
@@ -190,9 +200,13 @@
     });
     if (!v) return;
     if (!v.nick) return toast('昵称不能为空');
-    S.updateMe(v);
-    toast('资料已更新');
-    CFM.router.refresh();
+    try {
+      await S.updateMe(v);
+      toast('资料已更新');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
 
   /* ---------------- 收藏 ---------------- */
@@ -269,10 +283,14 @@
     },
   };
 
-  CFM.actions['notices.readAll'] = () => {
-    S.readNotices();
-    toast('已全部标为已读');
-    CFM.router.refresh();
+  CFM.actions['notices.readAll'] = async () => {
+    try {
+      await S.readNotices();
+      toast('已全部标为已读');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
 
   /* ---------------- 收款码 ---------------- */
@@ -304,9 +322,14 @@
   CFM.actions['qr.upload'] = async () => {
     const r = await CFM.ui.pickImage(600);
     if (!r) return;
-    S.updateMe({ qrImage: r.data });
-    toast('收款码已更新');
-    CFM.router.refresh();
+    try {
+      const url = await S.upload(r.data);
+      await S.updateMe({ qrImage: url });
+      toast('收款码已更新');
+      CFM.router.refresh();
+    } catch (e) {
+      toast(e.message);
+    }
   };
   CFM.actions['qr.reset'] = () => {
     S.updateMe({ qrImage: null });
@@ -360,7 +383,7 @@
   CFM.actions['menu.switch'] = () => {
     CFM.menu.close();
     const me = S.me();
-    const users = S.db.users.filter((u) => u.id !== me.id);
+    const users = S.users().filter((u) => u.id !== me.id);
     const body = `<div class="sheet-list">
       ${users
         .map(
@@ -376,19 +399,23 @@
     </div>`;
     sheet({ title: '切换演示账号', desc: '切换后可以体验卖家视角：接受报价、发收款码、确认收款。', body });
   };
-  CFM.actions['menu.switchTo'] = (el) => {
+  CFM.actions['menu.switchTo'] = async (el) => {
     const u = S.user(el.dataset.id);
     document.querySelectorAll('.sheet-wrap').forEach((x) => x.remove());
-    S.switchUser(el.dataset.id);
-    toast('已切换为「' + u.nick + '」');
-    CFM.router.stack = [{ name: 'home', params: {} }];
-    CFM.router.render();
+    try {
+      await S.switchUser(el.dataset.id);
+      toast('已切换为「' + (u ? u.nick : '') + '」');
+      CFM.router.stack = [{ name: 'home', params: {} }];
+      CFM.router.render();
+    } catch (e) {
+      toast(e.message);
+    }
   };
   CFM.actions['menu.logout'] = async () => {
     CFM.menu.close();
-    const ok = await confirmSheet({ title: '退出登录', text: '演示数据会保留，下次可以用同一账号登录。', okText: '退出', danger: true });
+    const ok = await confirmSheet({ title: '退出登录', text: '数据都在服务端，下次用同一账号登录即可。', okText: '退出', danger: true });
     if (!ok) return;
-    S.logout();
+    await S.logout();
     CFM.router.stack = [{ name: 'auth', params: {} }];
     CFM.router.render();
   };
