@@ -2,17 +2,26 @@
   "name": "campus-flea-market",
   "version": "1.0.0",
   "private": true,
-  "description": "校园跳蚤市场 · 覆盖「发布 → 议价 → 下单 → 收款 → 交货 → 双方确认」完整闭环的二手交易单页应用",
-  "keywords": ["campus", "second-hand", "marketplace", "vanilla-js", "spa", "state-machine"],
+  "description": "校园跳蚤市场 · 全栈二手交易平台（原生 JS + Node 内置 SQLite，零第三方依赖）",
+  "keywords": [
+    "campus",
+    "second-hand",
+    "marketplace",
+    "vanilla-js",
+    "spa",
+    "state-machine"
+  ],
   "license": "MIT",
   "author": "yang",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.5"
   },
   "scripts": {
-    "dev": "node scripts/serve.js",
-    "test": "node tests/syntax.js && node tests/run.js",
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "seed": "node server/seed.js",
+    "test": "node tests/syntax.js && node tests/api.spec.js",
     "test:syntax": "node tests/syntax.js",
-    "test:logic": "node tests/run.js"
+    "test:api": "node tests/api.spec.js"
   }
 }

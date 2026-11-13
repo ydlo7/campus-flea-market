@@ -17,6 +17,10 @@ desktop.ini
 npm-debug.log*
 .DS_Store?
 
+# 运行时数据（数据库与上传文件）
+server/data/
+server/uploads/
+
 # 本地调试产物
 _tmp/
 *.local
