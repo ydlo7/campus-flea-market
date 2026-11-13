@@ -8,6 +8,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const FILES = [
   'src/ui.js',
+  'src/analytics.js',
   'src/seed.js',
   'src/store.js',
   'src/router.js',

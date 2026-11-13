@@ -187,4 +187,24 @@ const cc = S.chatsOf()[0];
 S.markRead(cc.id);
 ok('进入会话后未读清零', (S.chat(cc.id).unread['u_zhang'] || 0) === 0);
 
+/* ---------------- 13 ---------------- */
+describe('[13] 埋点与漏斗');
+const A = CFM.analytics;
+S.bumpView('p_mouse');
+ok('详情曝光事件已记录', A.count('product_view') >= 1);
+ok(
+  '交易全链路事件齐全',
+  ['quote_sent', 'order_created', 'proof_uploaded', 'payment_confirmed', 'order_completed'].every(
+    (k) => A.count(k) >= 1
+  )
+);
+ok('取消/超时事件已记录', A.count('order_cancelled') >= 1 && A.count('order_expired') >= 1);
+const rows = A.funnel();
+ok('漏斗返回 7 个环节', rows.length === 7);
+ok('漏斗首环节为曝光', rows[0].事件 === 'product_view');
+A.track('not_registered_event', { foo: 1 });
+ok('未注册事件被丢弃', A.count('not_registered_event') === 0);
+const pub = A.all().find((e) => e.e === 'order_created');
+ok('事件带会话与用户标识', !!pub && !!pub.s && !!pub.u);
+
 process.exit(summary() ? 0 : 1);

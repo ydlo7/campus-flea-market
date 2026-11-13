@@ -16,6 +16,15 @@
   const uid = (p) => p + Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 6);
   const pad = (n) => (n < 10 ? '0' + n : '' + n);
 
+  /** 埋点：任何异常都不影响主流程 */
+  function T(name, props) {
+    try {
+      if (CFM.analytics) CFM.analytics.track(name, props);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
@@ -159,6 +168,7 @@
     };
     db.products.unshift(p);
     save();
+    T('product_published', { product_id: p.id, category: p.category, price: p.price, images: p.images.length });
     return p;
   }
   function updateProduct(id, patch) {
@@ -194,6 +204,7 @@
     if (!p) return;
     p.views = (p.views || 0) + 1;
     save();
+    T('product_view', { product_id: p.id, category: p.category, price: p.price, status: p.status });
   }
   function sellerStats(sellerId) {
     const all = db.products.filter((p) => p.sellerId === sellerId);
@@ -217,10 +228,12 @@
     if (i >= 0) {
       db.favorites.splice(i, 1);
       save();
+      T('favorite_toggle', { product_id: productId, on: false });
       return false;
     }
     db.favorites.unshift({ userId: u.id, productId, priceAtFav: p ? p.price : 0, ts: Date.now() });
     save();
+    T('favorite_toggle', { product_id: productId, on: true });
     return true;
   }
   function favList() {
@@ -264,6 +277,7 @@
       };
       db.chats.unshift(c);
       save();
+      T('chat_open', { chat_id: c.id, product_id: productId });
     }
     return c;
   }
@@ -346,7 +360,9 @@
       CFM.ui.toast('商品当前不可交易');
       return null;
     }
-    return pushMsg(chatId, { from: u.id, type: 'quote', price: Number(price), note: note || '', status: 'pending' });
+    const msg = pushMsg(chatId, { from: u.id, type: 'quote', price: Number(price), note: note || '', status: 'pending' });
+    if (msg) T('quote_sent', { chat_id: chatId, product_id: c.productId, price: Number(price), from_price: p.price });
+    return msg;
   }
   function respondQuote(chatId, msgId, accept) {
     const u = me();
@@ -361,6 +377,7 @@
     if (!accept) {
       m.status = 'rejected';
       pushMsg(chatId, { type: 'system', text: '报价已拒绝，可以继续聊聊' });
+      T('quote_responded', { chat_id: chatId, accept: false });
       return null;
     }
     if (p.status !== 'on_sale') {
@@ -368,6 +385,7 @@
       return null;
     }
     m.status = 'accepted';
+    T('quote_responded', { chat_id: chatId, accept: true });
     const order = createOrder(c, m.price);
     pushMsg(chatId, { type: 'system', text: `卖家接受报价 ¥${m.price}，订单已生成（待付款）` });
     pushMsg(chatId, { type: 'order', orderId: order.id });
@@ -400,6 +418,7 @@
     db.orders.unshift(order);
     p.status = 'reserved';
     save();
+    T('order_created', { order_id: order.id, product_id: order.productId, amount: order.amount });
     return order;
   }
 
@@ -480,6 +499,7 @@
     }
     addNotice(o.sellerId, { type: 'order', title: '买家已上传支付凭证', text: `订单 ${o.no} 等待你确认收款`, orderId: o.id, productId: o.productId });
     save();
+    T('proof_uploaded', { order_id: o.id, amount: o.amount, duration_ms: Date.now() - o.createdAt });
     return true;
   }
   function confirmPayment(orderId) {
@@ -493,6 +513,7 @@
     }
     addNotice(o.buyerId, { type: 'order', title: '卖家已确认收款', text: `订单 ${o.no} 已确认收款，等待线下交货`, orderId: o.id, productId: o.productId });
     save();
+    T('payment_confirmed', { order_id: o.id, amount: o.amount, duration_ms: Date.now() - o.createdAt });
     return true;
   }
   function confirmReceipt(orderId) {
@@ -504,6 +525,7 @@
     if (role === 'buyer') o.buyerConfirmed = true;
     else o.sellerConfirmed = true;
     o.timeline.push({ t: Date.now(), text: role === 'buyer' ? '买家已确认收货' : '卖家已确认交付' });
+    T('receipt_confirmed', { order_id: o.id, role: role === 'buyer' ? 'buyer' : 'seller' });
     if (o.buyerConfirmed && o.sellerConfirmed) {
       o.status = 'completed';
       o.timeline.push({ t: Date.now(), text: '双方确认完成，交易结束' });
@@ -515,6 +537,7 @@
       if (o.chatId) pushMsg(o.chatId, { type: 'system', text: '交易完成，商品已售出 🎉' });
       addNotice(o.buyerId, { type: 'order', title: '交易完成', text: `订单 ${o.no} 已完成，感谢使用`, orderId: o.id, productId: o.productId });
       addNotice(o.sellerId, { type: 'order', title: '交易完成', text: `订单 ${o.no} 已完成，商品已售出`, orderId: o.id, productId: o.productId });
+      T('order_completed', { order_id: o.id, amount: o.amount, duration_ms: Date.now() - o.createdAt });
     } else {
       if (o.chatId) pushMsg(o.chatId, { type: 'system', text: role === 'buyer' ? '买家已确认收货，等待卖家确认交付' : '卖家已确认交付，等待买家确认收货' });
     }
@@ -525,6 +548,7 @@
     const o = order(orderId);
     if (!o) return false;
     if (['completed', 'cancelled'].indexOf(o.status) >= 0) return false;
+    const cancelledFrom = o.status;
     o.status = 'cancelled';
     o.cancelReason = reason || '双方协商取消';
     o.cancelledAt = Date.now();
@@ -535,6 +559,7 @@
     }
     if (o.chatId) pushMsg(o.chatId, { type: 'system', text: '订单已取消，商品重新回到在售' });
     save();
+    T('order_cancelled', { order_id: o.id, stage: cancelledFrom, reason_len: (reason || '').length });
     return true;
   }
   function tick() {
@@ -549,6 +574,7 @@
         if (p && p.status === 'reserved') p.status = 'on_sale';
         if (o.chatId) pushMsg(o.chatId, { type: 'system', text: '预订超时未付款，订单已自动取消，商品回到在售' });
         addNotice(o.buyerId, { type: 'order', title: '订单已自动取消', text: `订单 ${o.no} 超时未付款`, orderId: o.id, productId: o.productId });
+        T('order_expired', { order_id: o.id, stage: 'pending_pay' });
         changed = true;
       }
     });

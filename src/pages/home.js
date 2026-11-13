@@ -78,8 +78,12 @@
       }
       const g = document.getElementById('grid');
       const c = document.getElementById('cnt');
+      const arr = list();
       if (g) g.innerHTML = gridHTML();
-      if (c) c.textContent = list().length + ' 件在售';
+      if (c) c.textContent = arr.length + ' 件在售';
+      if (v && CFM.analytics) {
+        CFM.analytics.track('search', { keyword_len: v.length, category: state.cat, result_count: arr.length });
+      }
     },
   };
 
