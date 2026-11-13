@@ -6,6 +6,7 @@
 
 覆盖 **发布商品 → 搜索 → 收藏 → 私聊议价 → 下单 → 收款 → 交货 → 双方确认** 的完整闭环。
 
+[![CI](https://github.com/ydlo7/campus-flea-market/actions/workflows/ci.yml/badge.svg)](https://github.com/ydlo7/campus-flea-market/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/Node-%E2%89%A522.5-339933?logo=node.js&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-%E5%86%85%E7%BD%AE-003B57?logo=sqlite&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
