@@ -8,7 +8,7 @@
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2020-f7df1e?logo=javascript&logoColor=black)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
-![Tests](https://img.shields.io/badge/tests-61%20passed-success)
+![Tests](https://img.shields.io/badge/tests-68%20passed-success)
 ![Size](https://img.shields.io/badge/size-~250KB-blue)
 ![License](https://img.shields.io/badge/license-MIT-black)
 
@@ -137,6 +137,7 @@ campus-flea-market/
 ├── assets/styles.css        # 设计变量 + 组件 + 响应式
 ├── src/
 │   ├── ui.js                # 图标 / toast / 弹窗 / 图片压缩
+│   ├── analytics.js         # 埋点注册表 + 漏斗计算
 │   ├── seed.js              # 演示数据 + SVG 占位图 / 收款码 / 凭证
 │   ├── store.js             # 业务与状态机（唯一写入口）
 │   ├── router.js            # 页面栈 / 顶栏 / 事件代理
@@ -145,9 +146,11 @@ campus-flea-market/
 ├── tests/
 │   ├── harness.js           # Node 里的 DOM 桩 + 加载器 + 断言
 │   ├── syntax.js            # 全量 node --check
-│   └── run.js               # 61 条业务与渲染断言
+│   └── run.js               # 68 条业务、渲染与埋点断言
 ├── docs/
 │   ├── PRD.md               # 需求文档：角色、优先级、验收标准
+│   ├── COMPETITIVE.md       # 竞品分析：定位矩阵、流程对比、取舍
+│   ├── ANALYTICS.md         # 埋点方案：北极星指标、漏斗、事件表
 │   ├── ARCHITECTURE.md      # 架构、状态机、设计决策
 │   └── RESUME.md            # 这个项目怎么写在简历上、面试怎么讲
 ├── scripts/serve.js         # 零依赖静态服务器
@@ -157,7 +160,7 @@ campus-flea-market/
 ## 测试
 
 ```bash
-npm test              # 语法检查 + 业务回归，共 61 条断言
+npm test              # 语法检查 + 业务回归，共 68 条断言
 npm run test:logic    # 只跑业务与渲染
 npm run test:syntax   # 只跑语法检查
 ```
@@ -176,6 +179,14 @@ npm run test:syntax   # 只跑语法检查
 ```
 
 此外每轮改动都会用无头浏览器逐页截图并抓控制台异常——静态渲染测试会漏「只在某个条件分支里执行」的未定义变量，这是实打实踩过的坑。
+
+## 产品视角
+
+除了能跑，也按产品的方式做了一层拆解：
+
+- **[竞品分析](docs/COMPETITIVE.md)** — 把闲鱼、转转、微信群、校园墙放在「交易闭环 × 同校匹配」两个维度上对比，结论是右上角（高闭环 + 高同校）仍是空白；并说明了本项目为什么**不做**平台支付、评价体系和推荐算法
+- **[埋点方案](docs/ANALYTICS.md)** — 北极星指标（周成交订单数）、七步交易漏斗、15 个事件与属性白名单、三个看板设计、上线前校验清单
+- **埋点已落地**：`src/analytics.js` 用注册表约束事件，采集点集中在 store 层（17 处）。浏览器控制台执行 `CFM.analytics.report()` 可直接打印漏斗
 
 ## 界面
 
@@ -198,6 +209,7 @@ npm run test:syntax   # 只跑语法检查
 - [x] 完整交易闭环（报价 → 凭证 → 交货 → 双方确认）
 - [x] 收藏降价提醒、通知中心
 - [x] 响应式布局、零依赖自动化测试、CI
+- [x] 埋点体系与交易漏斗（控制台 `CFM.analytics.report()` 可直接看）
 - [ ] 后端 API（Node + SQLite）+ JWT 登录
 - [ ] WebSocket 实时消息与未读推送
 - [ ] 迁移 TypeScript，store 拆分为 domain / service
@@ -207,6 +219,8 @@ npm run test:syntax   # 只跑语法检查
 ## 文档
 
 - [需求文档 PRD](docs/PRD.md)
+- [竞品分析](docs/COMPETITIVE.md)
+- [埋点方案与指标体系](docs/ANALYTICS.md)
 - [技术方案 ARCHITECTURE](docs/ARCHITECTURE.md)
 - [简历与面试用法](docs/RESUME.md)
 
