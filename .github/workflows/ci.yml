@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    name: 语法检查 + 业务回归
+    name: 语法检查 + API 集成测试
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,10 +16,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: 语法检查
         run: node tests/syntax.js
 
-      - name: 业务与渲染测试
-        run: node tests/run.js
+      - name: API 集成测试
+        run: node tests/api.spec.js
