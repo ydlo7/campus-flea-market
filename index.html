@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>跳蚤市场 · 校园二手交易</title>
+<meta name="description" content="面向高校的二手交易站点：发布、议价、下单、收款、交货、双方确认的完整闭环。原生 JS 实现，零依赖。">
+<meta name="theme-color" content="#17181A">
+<meta property="og:title" content="跳蚤市场 · 校园二手交易">
+<meta property="og:description" content="覆盖发布 → 议价 → 下单 → 收款 → 交货 → 双方确认的完整交易闭环">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2317181A'/%3E%3Ctext x='16' y='23' font-size='18' text-anchor='middle' fill='%23ffffff' font-family='sans-serif'%3E跳%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a class="logo" href="#" data-act="nav.home">
+      <span class="logo-mark">跳</span>
+      <span class="logo-txt">跳蚤市场</span>
+      <em class="logo-sub">校园二手</em>
+    </a>
+
+    <nav class="nav" id="nav">
+      <a href="#" data-act="nav.tab" data-tab="home">逛逛</a>
+      <a href="#" data-act="nav.tab" data-tab="messages">消息<span class="dot" id="navDot" hidden></span></a>
+      <a href="#" data-act="nav.tab" data-tab="favorites">收藏</a>
+    </nav>
+
+    <div class="hsearch">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5L16.6 16.6"/></svg>
+      <input id="hq" type="search" placeholder="搜索闲置：台灯 / 高数 / 自行车" autocomplete="off">
+    </div>
+
+    <div class="hright">
+      <button class="btn primary" data-act="nav.publish">发布闲置</button>
+      <button class="avatar-btn" id="userBtn" data-act="menu.toggle" aria-label="账号">
+        <img id="userAva" alt="">
+      </button>
+    </div>
+  </div>
+  <div class="menu-pop" id="userMenu"></div>
+</header>
+
+<main id="view"></main>
+
+<div class="toast-wrap" id="toast"></div>
+<div id="sheet-root"></div>
+
+<script src="src/ui.js"></script>
+<script src="src/seed.js"></script>
+<script src="src/store.js"></script>
+<script src="src/router.js"></script>
+<script src="src/pages/auth.js"></script>
+<script src="src/pages/home.js"></script>
+<script src="src/pages/detail.js"></script>
+<script src="src/pages/publish.js"></script>
+<script src="src/pages/messages.js"></script>
+<script src="src/pages/order.js"></script>
+<script src="src/pages/mine.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>
